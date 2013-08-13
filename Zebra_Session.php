@@ -554,6 +554,30 @@ class Zebra_Session
 
     }
 
+    /* public clean_session_dir() {{{ */
+    /**
+     * Garbage collector helper, cleans auxiliary session data from file system
+     *
+     * @access public
+     * @return void
+     */
+    function clean_session_dir()
+    {
+        $query =
+            "SELECT GROUP_CONCAT(session_id, ' ')
+                FROM " . $this->table_name . '
+            WHERE
+            session_expire < "' . $this->_mysql_real_escape_string(time()) . '"';
+
+        $dir_list = $this->_mysql_query($query)->fetch_row();
+
+        if (strlen($dir_list[0]) > 0) {
+            system('rm -rf ' . VAR_PATH . 'tmp/sessions/' . $dir_list[0]);
+        }
+
+    }
+    /* }}} */
+
     /**
      *  Custom gc() function (garbage collector)
      *
@@ -561,6 +585,10 @@ class Zebra_Session
      */
     function gc()
     {
+
+        // deletes expired sessions directories from file system
+
+        $this->clean_session_dir();
 
         // deletes expired sessions from database
         $result = $this->_mysql_query('
