@@ -630,7 +630,13 @@ class Zebra_Session
 
         // if there was an error
         // stop execution
-        if (!is_object($result) || strtolower(get_class($result)) != 'mysqli_result' || @mysqli_num_rows($result) != 1 || !($row = mysqli_fetch_array($result)) || $row[0] != 1) die('Zebra_Session: Could not obtain session lock!');
+        if (!is_object($result) || strtolower(get_class($result)) != 'mysqli_result'
+            || @mysqli_num_rows($result) != 1
+            || !($row = mysqli_fetch_array($result))
+            || $row[0] != 1
+        ) {
+            die('Zebra_Session: Could not obtain session lock!');
+        }
 
         //  reads session data associated with a session id, but only if
         //  -   the session ID exists;
@@ -826,9 +832,16 @@ class Zebra_Session
     private function _mysql_ping()
     {
 
-        // execute "mysqli_ping" and returns the result
-        return mysqli_ping($this->link);
-
+        if ($this->link instanceof mysqli) {
+            // execute "mysqli_ping" and returns the result
+            return mysqli_ping($this->link);
+        } elseif ($this->link instanceof MDB2_Driver_mysqli) {
+            // MDB2 doesn't have a ping method (yet)
+            return true;
+        } else {
+            trigger_error("Unknown database type!", E_USER_ERROR);
+            return false;
+        }
     }
 
     /**
