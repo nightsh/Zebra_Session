@@ -563,15 +563,22 @@ class Zebra_Session
     function clean_session_dir()
     {
         $query =
-            "SELECT GROUP_CONCAT(session_id, ',')
-                FROM " . $this->table_name . '
+            "SELECT session_id FROM " . $this->table_name . '
             WHERE
             session_expire < "' . $this->_mysql_real_escape_string(time()) . '"';
 
-        $dir_list = $this->_mysql_query($query)->fetch_row();
+        $result = $this->_mysql_query($query);
 
-        if (strlen($dir_list[0]) > 0) {
-            system('rm -rf ' . VAR_PATH . 'tmp/sessions/{' . $dir_list[0] . '}');
+        while ($row = mysqli_fetch_array($result)) {
+            $dirPath =& $row['session_id'];
+            foreach (new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator(
+                    $dirPath, FilesystemIterator::SKIP_DOTS
+                ), RecursiveIteratorIterator::CHILD_FIRST
+            ) as $path) {
+                $path->isFile() ? unlink($path->getPathname()) : rmdir($path->getPathname());
+            }
+            rmdir($dirPath) && error_log("[ivy] Removed $dirPath", E_USER_NOTICE);
         }
 
     }
@@ -587,6 +594,7 @@ class Zebra_Session
         // deletes expired sessions directories from file system
 
         $this->clean_session_dir();
+        $this->
 
         // deletes expired sessions from database
         $result = $this->_mysql_query('
