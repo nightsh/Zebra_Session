@@ -555,38 +555,12 @@ class Zebra_Session
     }
 
     /**
-     * Garbage collector helper, cleans auxiliary session data from file system
-     *
-     * @access public
-     * @return void
-     */
-    function clean_session_dir()
-    {
-        $query =
-            "SELECT GROUP_CONCAT(session_id, ',')
-                FROM " . $this->table_name . '
-            WHERE
-            session_expire < "' . $this->_mysql_real_escape_string(time()) . '"';
-
-        $dir_list = $this->_mysql_query($query)->fetch_row();
-
-        if (strlen($dir_list[0]) > 0) {
-            system('rm -rf ' . VAR_PATH . 'tmp/sessions/{' . $dir_list[0] . '}');
-        }
-
-    }
-
-    /**
      *  Custom gc() function (garbage collector)
      *
      *  @access private
      */
     function gc()
     {
-
-        // deletes expired sessions directories from file system
-
-        $this->clean_session_dir();
 
         // deletes expired sessions from database
         $result = $this->_mysql_query('
@@ -628,13 +602,7 @@ class Zebra_Session
 
         // if there was an error
         // stop execution
-        if (!is_object($result) || strtolower(get_class($result)) != 'mysqli_result'
-            || @mysqli_num_rows($result) != 1
-            || !($row = mysqli_fetch_array($result))
-            || $row[0] != 1
-        ) {
-            die('Zebra_Session: Could not obtain session lock!');
-        }
+        if (!is_object($result) || strtolower(get_class($result)) != 'mysqli_result' || @mysqli_num_rows($result) != 1 || !($row = mysqli_fetch_array($result)) || $row[0] != 1) die('Zebra_Session: Could not obtain session lock!');
 
         //  reads session data associated with a session id, but only if
         //  -   the session ID exists;
@@ -830,16 +798,9 @@ class Zebra_Session
     private function _mysql_ping()
     {
 
-        if ($this->link instanceof mysqli) {
-            // execute "mysqli_ping" and returns the result
-            return mysqli_ping($this->link);
-        } elseif ($this->link instanceof MDB2_Driver_mysqli) {
-            // MDB2 doesn't have a ping method (yet)
-            return true;
-        } else {
-            trigger_error("Unknown database type!", E_USER_ERROR);
-            return false;
-        }
+        // execute "mysqli_ping" and returns the result
+        return mysqli_ping($this->link);
+
     }
 
     /**
